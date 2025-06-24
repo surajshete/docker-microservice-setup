@@ -1,8 +1,3 @@
-Here's a clean and well-organized `README.md` file based on your detailed Docker Compose configuration and architecture. You can copy this directly into your GitHub repository.
-
----
-
-````markdown
 # 🧩 Microservice Architecture - Spring Boot + Docker + Kafka + Keycloak
 
 This project demonstrates a production-grade **Spring Boot Microservices** system orchestrated with **Docker Compose**, incorporating components like **Kafka**, **Keycloak**, **PostgreSQL**, **MongoDB**, and **Zipkin** for tracing.
@@ -11,6 +6,7 @@ This project demonstrates a production-grade **Spring Boot Microservices** syste
 
 ## 📦 Project Structure
 
+```plaintext
 microservice-new/
 ├── api-gateway/
 ├── discovery-server/
@@ -21,6 +17,7 @@ microservice-new/
 ├── docker-compose.yml
 ├── wait-for-it.sh
 └── README.md
+
 ````
 
 ---
