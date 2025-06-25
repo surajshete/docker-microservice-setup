@@ -1,13 +1,123 @@
-# 🧩 Microservice Architecture - Spring Boot + Docker + Kafka + Keycloak
 
-This project demonstrates a production-grade **Spring Boot Microservices** system orchestrated with **Docker Compose**, incorporating components like **Kafka**, **Keycloak**, **PostgreSQL**, **MongoDB**, and **Zipkin** for tracing.
+# 🧩 Dockerized Microservice Architecture with Spring Boot
+
+This project demonstrates a complete **Spring Boot Microservices architecture** powered by **Docker Compose**, including essential systems for:
+
+- 🧾 Order and Inventory Management
+- 🛡️ Authentication with Keycloak
+- 📦 Messaging with Kafka
+- 📡 Distributed Tracing with Zipkin
+- 📊 Monitoring via Kafka UI
+- ☁️ Eureka Discovery
+- 🌐 API Gateway
 
 ---
 
-## 📦 Project Structure
+## 🔧 Tech Stack
 
-```plaintext
-microservice-new/
+| Layer              | Technology                  |
+|-------------------|-----------------------------|
+| API Gateway       | Spring Cloud Gateway        |
+| Service Registry  | Netflix Eureka              |
+| Auth Service      | Keycloak (with MySQL)       |
+| Messaging         | Apache Kafka + Zookeeper    |
+| Tracing           | Zipkin                      |
+| Databases         | PostgreSQL, MongoDB, MySQL  |
+| Inter-service Comm| WebClient (Spring WebFlux)  |
+| Circuit Breaking  | Resilience4j                |
+| Containerization  | Docker + Docker Compose     |
+
+---
+
+## 🧱 Microservices
+
+| Service              | Description                                                                 |
+|----------------------|-----------------------------------------------------------------------------|
+| `discovery-server`   | Eureka server for registering and discovering services                      |
+| `api-gateway`        | Gateway to route and secure API traffic                                     |
+| `order-service`      | Handles order creation and persistence (PostgreSQL)                         |
+| `inventory-service`  | Manages stock validation and updates (PostgreSQL)                           |
+| `product-service`    | Maintains product catalog (MongoDB)                                         |
+| `notification-service`| Sends asynchronous notifications via Kafka                                 |
+
+---
+
+## 📦 Supporting Services
+
+| Service            | Description                                             |
+|--------------------|---------------------------------------------------------|
+| `postgres-order`   | Database for `order-service`                            |
+| `postgres-inventory`| Database for `inventory-service`                      |
+| `mongo`            | NoSQL DB for `product-service`                          |
+| `keycloak`         | Identity and Access Management                          |
+| `keycloak-mysql`   | Backend DB for Keycloak                                 |
+| `broker`           | Apache Kafka broker                                     |
+| `zookeeper`        | Kafka's coordination service                            |
+| `kafka-ui`         | Web UI to monitor Kafka topics and messages             |
+| `zipkin`           | Distributed tracing dashboard                           |
+
+---
+
+## 🚀 Getting Started
+
+### 🛠️ Prerequisites
+
+- Docker & Docker Compose
+- Java 21
+- Maven
+
+### ▶️ Run the entire stack
+
+```bash
+git clone https://github.com/surajshete/docker-microservice-setup.git
+cd docker-microservice-setup
+docker-compose up --build
+````
+
+> Ensure the port `9761` (Eureka), `9191` (API Gateway), `8080` (Keycloak), and `9411` (Zipkin) are free.
+
+---
+
+## 🌐 Service Access Points
+
+| Service          | URL                                            |
+| ---------------- | ---------------------------------------------- |
+| Eureka Dashboard | [http://localhost:9761](http://localhost:9761) |
+| API Gateway      | [http://localhost:9191](http://localhost:9191) |
+| Keycloak Admin   | [http://localhost:8080](http://localhost:8080) |
+| Zipkin Tracing   | [http://localhost:9411](http://localhost:9411) |
+| Kafka UI         | [http://localhost:8085](http://localhost:8085) |
+
+---
+
+## 📌 Keycloak Setup
+
+* Username: `admin`
+* Password: `admin`
+* Realm: Loaded from `./realms/`
+* Import realm automatically using Docker volume mount
+
+---
+
+## 📜 Kafka Topics
+
+* `orderTopic`
+* `notificationTopic`
+
+These topics are used by `order-service` and `notification-service`.
+
+---
+
+## ⚙️ Configuration
+
+Each service uses its own `application.yml` or `application-docker.properties` file. Environment variables are injected using `SPRING_PROFILES_ACTIVE=docker`.
+
+---
+
+## 📂 Project Structure
+
+```
+docker-microservice-setup/
 ├── api-gateway/
 ├── discovery-server/
 ├── inventory-service/
@@ -17,175 +127,18 @@ microservice-new/
 ├── docker-compose.yml
 ├── wait-for-it.sh
 └── README.md
-
-````
-
----
-
-## 🧰 Tech Stack
-
-* **Spring Boot 3.x**
-* **Spring Cloud (Eureka, Config)**
-* **PostgreSQL (Order & Inventory DBs)**
-* **MongoDB (Product DB)**
-* **Kafka + Zookeeper** (Messaging)
-* **Keycloak + MySQL** (Authentication & Authorization)
-* **Zipkin** (Distributed Tracing)
-* **Docker Compose** (Orchestration)
-
----
-
-## 🧪 Services Overview
-
-### 1. 🧾 `order-service`
-
-* Handles order placement and tracking.
-* Communicates with `inventory-service` and publishes to Kafka.
-* Database: **PostgreSQL** (`postgres-order:6431`)
-
-### 2. 📦 `inventory-service`
-
-* Verifies and reserves stock.
-* Supports stock rollbacks.
-* Database: **PostgreSQL** (`postgres-inventory:6432`)
-
-### 3. 🛍 `product-service`
-
-* Manages product catalog.
-* Database: **MongoDB** (`mongo:27017`)
-
-### 4. 🔔 `notification-service`
-
-* Listens to Kafka topic (`orderTopic`) and processes notifications.
-
-### 5. 🚪 `api-gateway`
-
-* Central entry point for external requests.
-* Handles routing and integrates with Keycloak for security.
-
-### 6. 🔍 `discovery-server`
-
-* **Eureka server** to enable service registration and discovery.
-
-### 7. 🔐 `keycloak`
-
-* Identity and Access Management (IAM).
-* Uses **MySQL** (`keycloak-mysql`) as the database.
-* Realm and clients are imported at startup.
-
-### 8. 🧵 `kafka + zookeeper`
-
-* Backbone for async communication.
-* Used for publishing order events and notifications.
-
-### 9. 📊 `kafka-ui`
-
-* Kafka web interface to monitor topics, producers, and consumers.
-
-### 10. 🔭 `zipkin`
-
-* Collects and visualizes distributed tracing data.
-
----
-
-## ⚙️ How to Run
-
-### 🔁 Pre-requisites
-
-* Docker & Docker Compose
-* Java 21
-* Maven
-
-### ▶️ Start All Services
-
-```bash
-docker-compose up --build
-```
-
-This will spin up all microservices and infrastructure containers.
-
----
-
-## 🌐 Service Endpoints
-
-| Service                | URL                                            |
-| ---------------------- | ---------------------------------------------- |
-| API Gateway            | [http://localhost:9191](http://localhost:9191) |
-| Eureka Discovery       | [http://localhost:9761](http://localhost:9761) |
-| Zipkin Tracing         | [http://localhost:9411](http://localhost:9411) |
-| Kafka UI               | [http://localhost:8085](http://localhost:8085) |
-| Keycloak Admin Console | [http://localhost:8080](http://localhost:8080) |
-
----
-
-## 🧩 Ports & Databases
-
-| Service             | Port  | Database   |
-| ------------------- | ----- | ---------- |
-| `order-service`     | 6431  | PostgreSQL |
-| `inventory-service` | 6432  | PostgreSQL |
-| `product-service`   | 27017 | MongoDB    |
-| `keycloak-mysql`    | 3306  | MySQL      |
-
----
-
-## 🔑 Keycloak Configuration
-
-* Admin Username: `admin`
-* Admin Password: `admin`
-* Realm and client configurations are auto-imported from `./realms/`.
-
----
-
-## 📢 Kafka Topics
-
-* **orderTopic**: Used by `order-service` to notify `notification-service`.
-
----
-
-## 🩺 Health Check
-
-Spring Actuator is enabled on all services.
-
-Example:
-
-```
-GET http://<service-host>:<port>/actuator/health
 ```
 
 ---
 
-## 🧼 Clean Up
+## 📈 Observability
 
-To stop and remove all containers:
-
-```bash
-docker-compose down -v
-```
+Each service includes Micrometer + Zipkin tracing. You can track API calls via the Zipkin UI once services are running.
 
 ---
 
-## 📌 TODOs
+## 🤝 Contributing
 
-* [ ] Add Prometheus + Grafana for metrics.
-* [ ] Add email provider integration to `notification-service`.
-* [ ] Rate-limiting and throttling on `api-gateway`.
+Feel free to fork the repo, raise issues or submit PRs for new features, bug fixes, or improvements!
 
 ---
-
-## 🤝 Contribution
-
-Pull requests and issues are welcome. Let’s build together!
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License.
-
-```
-
----
-
-Let me know if you'd like a separate `CONTRIBUTING.md` or example API usage section added.
-```
