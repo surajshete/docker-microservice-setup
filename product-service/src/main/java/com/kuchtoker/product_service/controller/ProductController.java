@@ -1,5 +1,6 @@
 package com.kuchtoker.product_service.controller;
 
+import com.kuchtoker.product_service.dto.ProductExistsResponse;
 import com.kuchtoker.product_service.dto.ProductRequest;
 import com.kuchtoker.product_service.dto.ProductResponse;
 import com.kuchtoker.product_service.service.ProductService;
@@ -29,8 +30,8 @@ public class ProductController {
     }
 
 	@GetMapping("/exists")
-	public ResponseEntity<Boolean> doesProductExist(@RequestParam String name) {
-		return ResponseEntity.ok(productService.productExistsByName(name));
+	public List<ProductExistsResponse> doesProductExist(@RequestParam List<String> name) {
+		return productService.productExistsByName(name);
 	}
 
 }
