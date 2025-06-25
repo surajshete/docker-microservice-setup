@@ -1,5 +1,6 @@
 package com.kuchtoker.orderservice.event;
 
+import com.kuchtoker.orderservice.model.Order;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,5 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderPlacedEvent {
-	private String orderNumber;
+	private Order order;
 }

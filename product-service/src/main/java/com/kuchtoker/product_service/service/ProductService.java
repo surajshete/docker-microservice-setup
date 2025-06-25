@@ -2,6 +2,7 @@ package com.kuchtoker.product_service.service;
 
 
 import com.kuchtoker.product_service.dto.InventoryCheckRequest;
+import com.kuchtoker.product_service.dto.ProductExistsResponse;
 import com.kuchtoker.product_service.dto.ProductRequest;
 import com.kuchtoker.product_service.dto.ProductResponse;
 import com.kuchtoker.product_service.exception.CustomException;
@@ -102,7 +103,30 @@ public class ProductService {
                 .price(product.getPrice())
                 .build();
     }
-    public boolean productExistsByName(String name) {
-        return productRepository.findByName(name).isPresent();
+    public List<ProductExistsResponse> productExistsByName(List<String> names) {
+        List<Product> foundProducts = productRepository.findByNameIn(names);
+
+        // Convert to response and mark which products were found
+        return names.stream().map(name -> {
+            Optional<Product> match = foundProducts.stream()
+                    .filter(p -> p.getName().equalsIgnoreCase(name))
+                    .findFirst();
+
+            if (match.isPresent()) {
+                Product product = match.get();
+                return ProductExistsResponse.builder()
+                        .id(product.getId())
+                        .name(product.getName())
+                        .description(product.getDescription())
+                        .price(product.getPrice())
+                        .isPresent(true)
+                        .build();
+            } else {
+                return ProductExistsResponse.builder()
+                        .name(name)
+                        .isPresent(false)
+                        .build();
+            }
+        }).toList();
     }
 }

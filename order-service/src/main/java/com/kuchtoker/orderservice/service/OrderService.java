@@ -16,8 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +35,9 @@ public class OrderService {
     public String placeOrder(OrderRequest orderRequest){
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
+        List<String> missingProducts = null;
+        Map<String, BigDecimal> productPriceMap = null;
+        BigDecimal totalPrice = null;
 
         List<OrderLineItem> orderLineItems = orderRequest.getOrderLineItemsDtoList()
                 .stream()
@@ -48,30 +54,60 @@ public class OrderService {
                 .map(item -> new InventoryCheckRequest(item.getSkuCode(), item.getQuantity()))
                 .toList();
 
-        boolean allProductsInStock;
+        boolean allProductsExist = false;
 
         Span inventoryServiceLookup = tracer.nextSpan().name("InventoryServiceLookup");
         boolean isProductExistsInMongoDB = false;
 
         try {
-            log.info("Calling product exists Service");
-            isProductExistsInMongoDB = Boolean.TRUE.equals(
-                    webClientBuilder.build()
-                            .get()
-                            .uri("http://product-service/api/product/exists", uriBuilder ->
-                                    uriBuilder.queryParam("name", skuCodes).build())
-                            .retrieve()
-                            .bodyToMono(Boolean.class)
-                            .block()
-            );
-            log.info("product exists Service result {}", isProductExistsInMongoDB);
+            log.info("Calling product exists Service for list of {}",skuCodes);
+            List<ProductExistsResponse> productResponses = webClientBuilder.build()
+                    .get()
+                    .uri("http://product-service/api/product/exists", uriBuilder ->
+                            uriBuilder.queryParam("name", skuCodes).build())
+                    .retrieve()
+                    .bodyToFlux(ProductExistsResponse.class)
+                    .collectList()
+                    .block();
+
+            allProductsExist = productResponses != null &&
+                    productResponses.stream().allMatch(ProductExistsResponse::isPresent);
+            log.info("product exists Service result {}", allProductsExist);
+            if(!allProductsExist) {
+                // Identify missing products
+                missingProducts = productResponses.stream()
+                        .filter(resp -> !resp.isPresent())
+                        .map(ProductExistsResponse::getName)
+                        .toList();
+            }
+             productPriceMap = productResponses.stream()
+                    .filter(ProductExistsResponse::isPresent)
+                    .collect(Collectors.toMap(ProductExistsResponse::getName, ProductExistsResponse::getPrice));
         } catch (Exception e) {
             log.warn("Failed to call product-service: {}", e.getMessage());
         }
 
-        if (isProductExistsInMongoDB) {
+        if (allProductsExist) {
             try (Tracer.SpanInScope spanInScope = tracer.withSpan(inventoryServiceLookup.start())) {
-                log.info("Calling inventory Service");
+
+	            if( productPriceMap != null){
+                    // Update price for each orderLineItem
+                    Map<String, BigDecimal> finalProductPriceMap = productPriceMap;
+                    orderLineItems.forEach(item -> {
+                        if (finalProductPriceMap.containsKey(item.getSkuCode())) {
+                            item.setPrice(finalProductPriceMap.get(item.getSkuCode()));
+                        }
+                    });
+
+                    // Calculate total order price
+                     totalPrice = orderLineItems.stream()
+                            .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                    log.info("Total price of order: {}", totalPrice);
+                }
+
+                log.info("Calling inventory Service to check and deduct with inventoryCheckList: {}",inventoryCheckList);
                 InventoryResponse inventoryResponse = webClientBuilder.build()
                         .post()
                         .uri("http://inventory-service/api/inventory/check-and-deduct")
@@ -90,8 +126,9 @@ public class OrderService {
 
                 if (inventoryResponse != null && inventoryResponse.isSuccess()) {
                     orderRepository.save(order);
-                    kafkaTemplate.send("orderTopic", new OrderPlacedEvent(order.getOrderNumber()));
-                    return "Order placed successfully";
+                    kafkaTemplate.send("orderTopic", new OrderPlacedEvent(order));
+                    return String.format("Order [%s] placed successfully. Total amount to pay: ₹%.2f",
+                            order.getOrderNumber(), totalPrice);
                 } else {
                     throw new IllegalArgumentException("Insufficient stock");
                 }
@@ -100,16 +137,19 @@ public class OrderService {
                 inventoryServiceLookup.end();
             }
         } else {
-            throw new IllegalArgumentException("Product is not in inventory, please try again later");
+            log.warn("The following products are missing in product-service: {}", missingProducts);
+            throw new IllegalArgumentException("Missing products: " + missingProducts);
         }
     }
 
 
     private OrderLineItem mapToDto(OrderLineItemListDto orderLineItemListDto) {
+
         OrderLineItem orderLineItems = new OrderLineItem();
-        orderLineItems.setPrice(orderLineItemListDto.getPrice());
+
         orderLineItems.setQuantity(orderLineItemListDto.getQuantity());
         orderLineItems.setSkuCode(orderLineItemListDto.getSkuCode());
+
         return orderLineItems;
     }
 }

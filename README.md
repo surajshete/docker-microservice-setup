@@ -136,7 +136,15 @@ docker-microservice-setup/
 Each service includes Micrometer + Zipkin tracing. You can track API calls via the Zipkin UI once services are running.
 
 ---
+## ✅ TODOs
 
+- ✅ Support bulk order placement in `order-service`
+- ✅ Fetch product price in `order-service`, calculate total, and return price as string
+- ⬜ Integrate Prometheus and Grafana for monitoring
+- ⬜ Add email provider support in `notification-service`
+- ⬜ Implement rate-limiting in `api-gateway`
+
+---
 ## 🤝 Contributing
 
 Feel free to fork the repo, raise issues or submit PRs for new features, bug fixes, or improvements!
