@@ -143,6 +143,8 @@ Each service includes Micrometer + Zipkin tracing. You can track API calls via t
 - ⬜ Integrate Prometheus and Grafana for monitoring
 - ⬜ Add email provider support in `notification-service`
 - ⬜ Implement rate-limiting in `api-gateway`
+- ⬜ Add a short video demo or README with screenshots.
+- ⬜ Include unit tests and basic API docs (Swagger, Postman collection).
 
 ---
 ## 🤝 Contributing
