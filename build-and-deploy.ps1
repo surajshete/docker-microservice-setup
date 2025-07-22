@@ -47,14 +47,15 @@ foreach ($service in $servicesToRebuild) {
     }
 
     Write-Output "[INFO] Restarting $service ..."
-    $upOutput = docker-compose up -d --no-deps --force-recreate $service *>&1
+    $upOutput = & { docker-compose up -d --no-deps --force-recreate $service } 2>&1
     $upOutput | Out-File -Append -FilePath $dockerLog -Encoding UTF8
 
-    if ($LASTEXITCODE -ne 0) {
+    if ($upOutput -match "error" -or $LASTEXITCODE -ne 0) {
         Write-Output "[ERROR] Failed to restart $service. Check logs for details."
         $upOutput | Select-Object -First 20
         exit 1
     }
+
 
     Write-Output "[OK] $service restarted successfully."
 }
