@@ -25,8 +25,8 @@ public class ProductService {
     public void createProduct(ProductRequest productRequest) {
         // 1. Check if product already exists (based on name in this example)
         Optional<Product> existingProductOpt = productRepository.findByName(productRequest.getName());
-
         Product product;
+
         if (existingProductOpt.isPresent()) {
             product = existingProductOpt.get();
             boolean isUpdated = false;

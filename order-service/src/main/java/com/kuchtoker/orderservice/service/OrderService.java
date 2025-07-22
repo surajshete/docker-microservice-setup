@@ -1,8 +1,9 @@
 package com.kuchtoker.orderservice.service;
 
+import com.kuchtoker.orderservice.event.OrderPlacedEvent;
 import com.kuchtoker.orderservice.exception.CustomException;
 import com.kuchtoker.orderservice.dto.*;
-import com.kuchtoker.orderservice.event.OrderPlacedEvent;
+import com.kuchtoker.orderservice.event.FullOrderPlacedEvent;
 import com.kuchtoker.orderservice.model.Order;
 import com.kuchtoker.orderservice.model.OrderLineItem;
 import com.kuchtoker.orderservice.repository.OrderRepository;
@@ -31,7 +32,8 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final WebClient.Builder webClientBuilder;
     private final Tracer tracer;
-    private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
+    private final KafkaTemplate<String, FullOrderPlacedEvent> kafkaTemplate;
+    private final KafkaTemplate<String, OrderPlacedEvent> kafkaNotify;
     public String placeOrder(OrderRequest orderRequest){
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
@@ -126,7 +128,8 @@ public class OrderService {
 
                 if (inventoryResponse != null && inventoryResponse.isSuccess()) {
                     orderRepository.save(order);
-                    kafkaTemplate.send("orderTopic", new OrderPlacedEvent(order));
+                    kafkaTemplate.send("orderTopic", new FullOrderPlacedEvent(order));
+                    kafkaNotify.send("notificationTopic",new OrderPlacedEvent(order.getOrderNumber()));
                     return String.format("Order [%s] placed successfully. Total amount to pay: ₹%.2f",
                             order.getOrderNumber(), totalPrice);
                 } else {
